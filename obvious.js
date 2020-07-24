@@ -27,10 +27,16 @@ export function randomElement(array) {
   return array[Math.floor(Math.random() * array.length)];
 }
 
-export function rect(context, xi, yi, xf, yf, r, g, b) {
-  context.fillStyle = `rgb(${r}, ${g}, ${b})`;
+export function rect(context, xi, yi, xf, yf, r, g, b, a = 1) {
+  context.fillStyle = `rgba(${r}, ${g}, ${b}, ${a})`;
   context.fillRect(xi, yi, xf - xi, yf - yi);
-  context.stroke();
+}
+
+export function disc(context, x, y, radius, r, g, b, a = 1) {
+  context.fillStyle = `rgba(${r}, ${g}, ${b}, ${a})`;
+  context.beginPath();
+  context.arc(x, y, radius, 0, 2 * Math.PI);
+  context.fill();
 }
 
 /*

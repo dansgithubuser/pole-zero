@@ -1,10 +1,88 @@
-<canvas width=800 height=600/>
+<div>
+  <input type='button' value='add pole'    style='background: rgb(0, 255, 0)' onclick='window.addPole()'>
+  <input type='button' value='remove pole' style='background: rgb(0, 255, 0)' onclick='window.remPole()'>
+  &emsp;&emsp;
+  <input type='button' value='add zero'    style='background: rgb(255, 0, 0)' onclick='window.addZero()'>
+  <input type='button' value='remove zero' style='background: rgb(255, 0, 0)' onclick='window.remZero()'>
+</div>
+<canvas id='canvas' style='width: 90vw; height: 90vh'></canvas>
 
 <script type='module'>
 
-import './obvious.js'
+// imports
+import {
+  disc,
+  e,
+  rect,
+} from './obvious.js'
 import { Complex } from './complex.js'
 
-console.log(Complex(1, 2))
+// consts
+const CANVAS = e('canvas');
+const CONTEXT = CANVAS.getContext('2d');
+CANVAS.width = CANVAS.offsetWidth;
+CANVAS.height = CANVAS.offsetHeight;
+const W = CANVAS.width;
+const H = CANVAS.height;
+const R = 5;
+const UNIT_X = W / 2;
+const UNIT_Y = H;
+const UNIT_R = H / 2;
+
+// globals
+let gZeros = [];
+let gPoles = [];
+
+// controls
+window.addPole = () => {
+  gPoles.push(Complex(0, 0));
+  render();
+}
+
+window.remPole = () => {
+  gPoles.pop();
+  render();
+}
+
+window.addZero = () => {
+  gZeros.push(Complex(0, 0));
+  render();
+}
+
+window.remZero = () => {
+  gZeros.pop();
+  render();
+}
+
+// rendering
+function render() {
+  // background
+  rect(CONTEXT, 0, 0, W, H, 0, 0, 0);
+  // unit circle
+  disc(CONTEXT, UNIT_X, UNIT_Y, UNIT_R, 0, 0, 64);
+  // poles
+  for (const i of gPoles) {
+    disc(CONTEXT,
+      UNIT_X + i.re * UNIT_R,
+      UNIT_Y - i.im * UNIT_R, R,
+      0, 255, 0,
+    );
+  }
+  // zeros
+  for (const i of gZeros) {
+    disc(CONTEXT,
+      UNIT_X + i.re * UNIT_R,
+      UNIT_Y - i.im * UNIT_R, R,
+      255, 0, 0,
+    );
+  }
+}
+
+// setup
+for (let i = 0; i < 4; ++i) {
+  gPoles.push(Complex(1, 0).mul({ abs: Math.random(), arg: Math.PI * Math.random()}));
+  gZeros.push(Complex(1, 0).mul({ abs: Math.random(), arg: Math.PI * Math.random()}));
+}
+render();
 
 </script>
