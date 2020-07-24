@@ -9,7 +9,7 @@
 
 <script type='module'>
 
-// imports
+//===== imports =====//
 import {
   disc,
   e,
@@ -17,23 +17,27 @@ import {
 } from './obvious.js'
 import { Complex } from './complex.js'
 
-// consts
+//===== consts =====//
 const CANVAS = e('canvas');
 const CONTEXT = CANVAS.getContext('2d');
 CANVAS.width = CANVAS.offsetWidth;
 CANVAS.height = CANVAS.offsetHeight;
 const W = CANVAS.width;
 const H = CANVAS.height;
-const R = 5;
+
 const UNIT_X = W / 2;
 const UNIT_Y = H;
 const UNIT_R = H / 2;
 
-// globals
+const R = 5; // radius of poles and zeros
+
+const N = 1024; // samples of frequency response
+
+//===== globals =====//
 let gZeros = [];
 let gPoles = [];
 
-// controls
+//===== controls =====//
 window.addPole = () => {
   gPoles.push(Complex(0, 0));
   render();
@@ -54,31 +58,69 @@ window.remZero = () => {
   render();
 }
 
-// rendering
+//===== rendering =====//
 function render() {
   // background
   rect(CONTEXT, 0, 0, W, H, 0, 0, 0);
+  // calculate frequency response
+  let h = [];
+  let h_max = 1;
+  let h_min = 1;
+  for (let i = 0; i < N; ++i) {
+    let z = Complex(1, 0).mul({ abs: 1, arg: Math.PI * i / (N - 1) });
+    let h_i = Complex(1, 0);
+    for (const j of gPoles) {
+      h_i = h_i.div((z.sub(j)));
+      if (j.im != 0)
+        h_i = h_i.div((z.sub(j.conjugate())));
+    }
+    for (const j of gZeros) {
+      h_i = h_i.mul((z.sub(j)));
+      if (j.im != 0)
+        h_i = h_i.mul((z.sub(j.conjugate())));
+    }
+    h.push(h_i);
+    if (h_i.abs() > h_max) h_max = h_i.abs();
+    if (h_i.abs() < h_min) h_min = h_i.abs();
+  }
+  h_max = 20 * Math.log10(h_max);
+  h_min = 20 * Math.log10(h_min);
+  const h_rng = h_max - h_min;
+  // unit response
+  disc(CONTEXT, UNIT_X, UNIT_Y, UNIT_R - h_min / h_rng * UNIT_R, 32, 32, 32);
+  // render frequency response
+  CONTEXT.strokeStyle = 'rgb(255, 255, 255)';
+  CONTEXT.beginPath();
+  for (let i = 0; i < N; ++i) {
+    const r = UNIT_R + (20 * Math.log10(h[i].abs()) - h_min) / h_rng * UNIT_R;
+    const theta = Math.PI * i / (N - 1);
+    const x = UNIT_X + r * Math.cos(theta);
+    const y = UNIT_Y - r * Math.sin(theta);
+    if (i == 0)
+      CONTEXT.moveTo(x, y);
+    else
+      CONTEXT.lineTo(x, y);
+  }
+  CONTEXT.stroke();
   // unit circle
   disc(CONTEXT, UNIT_X, UNIT_Y, UNIT_R, 0, 0, 64);
   // poles
-  for (const i of gPoles) {
-    disc(CONTEXT,
-      UNIT_X + i.re * UNIT_R,
-      UNIT_Y - i.im * UNIT_R, R,
-      0, 255, 0,
-    );
-  }
+  for (const i of gPoles) disc(CONTEXT,
+    UNIT_X + i.re * UNIT_R,
+    UNIT_Y - i.im * UNIT_R,
+    R,
+    0, 255, 0,
+  );
   // zeros
-  for (const i of gZeros) {
-    disc(CONTEXT,
-      UNIT_X + i.re * UNIT_R,
-      UNIT_Y - i.im * UNIT_R, R,
-      255, 0, 0,
-    );
-  }
+  for (const i of gZeros) disc(CONTEXT,
+    UNIT_X + i.re * UNIT_R,
+    UNIT_Y - i.im * UNIT_R,
+    R,
+    255, 0, 0,
+  );
 }
 
-// setup
+//===== setup =====//
 for (let i = 0; i < 4; ++i) {
   gPoles.push(Complex(1, 0).mul({ abs: Math.random(), arg: Math.PI * Math.random()}));
   gZeros.push(Complex(1, 0).mul({ abs: Math.random(), arg: Math.PI * Math.random()}));
