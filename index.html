@@ -4,8 +4,30 @@
   &emsp;&emsp;
   <input type='button' value='add zero'    style='background: rgb(255, 0, 0)' onclick='window.addZero()'>
   <input type='button' value='remove zero' style='background: rgb(255, 0, 0)' onclick='window.remZero()'>
+  &emsp;&emsp;
+  gain
+  <input type='number' id='gain-min' value='0' onchange='window.render()'>
+  <input type='range' id='gain' min='0' max='1' value='0.1' step='any' oninput='window.render()'>
+  <input type='number' id='gain-max' value='10' onchange='window.render()'>
 </div>
 <canvas id='canvas' style='width: 90vw; height: 90vh'></canvas>
+<br>
+<br>
+<div style='min-height: 40em'>
+  custom spectrum data
+  <br>
+  <textarea id='custom-spectrum-data' rows=40 cols=120 onkeyup='window.renderDelayed()'></textarea>
+</div>
+<div style='height: 20em'>
+</div>
+
+<style>
+
+*[type='range'] {
+  vertical-align: bottom;
+}
+
+</style>
 
 <script type='module'>
 
@@ -15,6 +37,7 @@ import {
   e,
   listenToTouches,
   rect,
+  v,
 } from './obvious.js'
 import { Complex } from './complex.js'
 
@@ -74,6 +97,9 @@ function render() {
   // background
   rect(CONTEXT, 0, 0, W, H, 0, 0, 0);
   // calculate frequency response
+  const gain_min = parseFloat(v('gain-min'));
+  const gain_max = parseFloat(v('gain-max'));
+  const gain = gain_min + (gain_max - gain_min) * parseFloat(v('gain'));
   let h = [];
   let h_max = 1;
   let h_min = 1;
@@ -90,6 +116,7 @@ function render() {
       if (j.im != 0)
         h_i = h_i.mul((z.sub(j.conjugate())));
     }
+    h_i = h_i.mul(gain);
     h.push(h_i);
     if (h_i.abs() > h_max) h_max = h_i.abs();
     if (h_i.abs() < h_min) h_min = h_i.abs();
@@ -99,7 +126,9 @@ function render() {
   const h_rng = h_max - h_min;
   // unit response
   disc(CONTEXT, UNIT_X, UNIT_Y, UNIT_R - h_min / h_rng * UNIT_R, 32, 32, 32);
-  // render frequency response
+  // unit circle
+  disc(CONTEXT, UNIT_X, UNIT_Y, UNIT_R, 0, 0, 64);
+  // frequency response
   CONTEXT.strokeStyle = 'rgb(255, 255, 255)';
   CONTEXT.beginPath();
   for (let i = 0; i < N; ++i) {
@@ -113,8 +142,28 @@ function render() {
       CONTEXT.lineTo(x, y);
   }
   CONTEXT.stroke();
-  // unit circle
-  disc(CONTEXT, UNIT_X, UNIT_Y, UNIT_R, 0, 0, 64);
+  // custom spectrum data
+  CONTEXT.strokeStyle = 'rgb(0, 255, 255)';
+  CONTEXT.beginPath();
+  let customSpectrumData = [];
+  if (v('custom-spectrum-data')) {
+    try {
+      customSpectrumData = JSON.parse(v('custom-spectrum-data'));
+    } catch(e) {
+      console.log(e);
+    }
+  }
+  for (let i = 0; i < customSpectrumData.length; ++i) {
+    const r = UNIT_R + (20 * Math.log10(customSpectrumData[i]) - h_min) / h_rng * UNIT_R;
+    const theta = Math.PI * i / (customSpectrumData.length - 1);
+    const x = UNIT_X + r * Math.cos(theta);
+    const y = UNIT_Y - r * Math.sin(theta);
+    if (i == 0)
+      CONTEXT.moveTo(x, y);
+    else
+      CONTEXT.lineTo(x, y);
+  }
+  CONTEXT.stroke();
   // poles
   for (const i of gPoles) disc(CONTEXT,
     reToX(i), imToY(i), R,
@@ -124,6 +173,21 @@ function render() {
   for (const i of gZeros) disc(CONTEXT,
     reToX(i), imToY(i), R,
     255, 0, 0,
+  );
+}
+window.render = render;
+
+window.renderDelayed = () => {
+  if (window.renderTimeout) {
+    clearTimeout(window.renderTimeout);
+    window.renderTimeout = null;
+  }
+  window.renderTimeout = setTimeout(
+    () => {
+      render();
+      window.renderTimeout = null;
+    },
+    500,
   );
 }
 
