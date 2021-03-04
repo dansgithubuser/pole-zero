@@ -125,7 +125,15 @@ function render() {
   h_min = 20 * Math.log10(h_min);
   const h_rng = h_max - h_min;
   // unit response
-  disc(CONTEXT, UNIT_X, UNIT_Y, UNIT_R - h_min / h_rng * UNIT_R, 32, 32, 32);
+  {
+    const r = UNIT_R + (  0 - h_min) / h_rng * UNIT_R;
+    if (r > 0) disc(CONTEXT, UNIT_X, UNIT_Y, r, 32, 32, 32);
+  }
+  // -20 dB response
+  {
+    const r = UNIT_R + (-20 - h_min) / h_rng * UNIT_R;
+    if (r > 0) disc(CONTEXT, UNIT_X, UNIT_Y, r, 16, 16, 16);
+  }
   // unit circle
   disc(CONTEXT, UNIT_X, UNIT_Y, UNIT_R, 0, 0, 64);
   // frequency response
